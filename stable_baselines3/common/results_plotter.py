@@ -2,9 +2,6 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-
-# import matplotlib
-# matplotlib.use('TkAgg')  # Can change to 'Agg' for non-interactive mode
 from matplotlib import pyplot as plt
 
 from stable_baselines3.common.monitor import load_results
@@ -29,7 +26,9 @@ def rolling_window(array: np.ndarray, window: int) -> np.ndarray:
     return np.lib.stride_tricks.as_strided(array, shape=shape, strides=strides)
 
 
-def window_func(var_1: np.ndarray, var_2: np.ndarray, window: int, func: Callable) -> Tuple[np.ndarray, np.ndarray]:
+def window_func(
+    var_1: np.ndarray, var_2: np.ndarray, window: int, func: Callable
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Apply a function to the rolling window of 2 arrays
 
@@ -44,7 +43,9 @@ def window_func(var_1: np.ndarray, var_2: np.ndarray, window: int, func: Callabl
     return var_1[window - 1 :], function_on_var2
 
 
-def ts2xy(data_frame: pd.DataFrame, x_axis: str, key: str = 'r') -> Tuple[np.ndarray, np.ndarray]:
+def ts2xy(
+    data_frame: pd.DataFrame, x_axis: str, key: str = "r"
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Decompose a data frame variable to x ans ys
 
@@ -69,7 +70,11 @@ def ts2xy(data_frame: pd.DataFrame, x_axis: str, key: str = 'r') -> Tuple[np.nda
 
 
 def plot_curves(
-    xy_list: List[Tuple[np.ndarray, np.ndarray]], x_axis: str, title: str,  key: str= 'r', figsize: Tuple[int, int] = (8, 2)
+    xy_list: List[Tuple[np.ndarray, np.ndarray]],
+    x_axis: str,
+    title: str,
+    key: str = "r",
+    figsize: Tuple[int, int] = (8, 2),
 ) -> None:
     """
     plot the curves
@@ -85,17 +90,19 @@ def plot_curves(
     max_x = max(xy[0][-1] for xy in xy_list)
     min_x = 0
     for (_, (x, y)) in enumerate(xy_list):
-        plt.scatter(x, y, label=key)
         # Do not plot the smoothed curve at all if the timeseries is shorter than window size.
         if x.shape[0] >= EPISODES_WINDOW:
             # Compute and plot rolling mean with window of size EPISODE_WINDOW
             x, y_mean = window_func(x, y, EPISODES_WINDOW, np.mean)
-            plt.plot(x, y_mean)
+            plt.plot(x, y_mean, label=key)
+        else:
+            plt.scatter(x, y, label=key)
+
     plt.xlim(min_x, max_x)
-    label = 'Reward'
-    if key == 'success' or key == 'spl':
+    label = "Reward"
+    if key == "success" or key == "spl":
         plt.ylim(0, 1)
-        label = 'Performance'
+        label = "Performance"
     plt.title(title)
     plt.xlabel(x_axis)
     plt.ylabel("Episode " + label)
@@ -104,7 +111,12 @@ def plot_curves(
 
 
 def plot_results(
-    dirs: List[str], num_timesteps: Optional[int], x_axis: str, task_name: str, key: str= 'r', figsize: Tuple[int, int] = (8, 2)
+    dirs: List[str],
+    num_timesteps: Optional[int],
+    x_axis: str,
+    task_name: str,
+    key: str = "r",
+    figsize: Tuple[int, int] = (8, 2),
 ) -> None:
     """
     Plot the results using csv files from ``Monitor`` wrapper.
@@ -124,5 +136,4 @@ def plot_results(
             data_frame = data_frame[data_frame.l.cumsum() <= num_timesteps]
         data_frames.append(data_frame)
     xy_list = [ts2xy(data_frame, x_axis, key) for data_frame in data_frames]
-    print(xy_list)
     plot_curves(xy_list, x_axis, task_name, key, figsize)
