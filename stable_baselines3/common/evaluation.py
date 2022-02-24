@@ -70,23 +70,23 @@ def evaluate_policy(
         )
 
     n_envs = env.num_envs
-    episode_rewards = []
-    episode_lengths = []
+    episode_successes = []
+    episode_spls = []
 
     episode_counts = np.zeros(n_envs, dtype="int")
     # Divides episodes among different sub environments in the vector as evenly as possible
     episode_count_targets = np.array([(n_eval_episodes + i) // n_envs for i in range(n_envs)], dtype="int")
 
-    current_rewards = np.zeros(n_envs)
-    current_lengths = np.zeros(n_envs, dtype="int")
+    current_successes = np.zeros(n_envs)
+    current_spls = np.zeros(n_envs, dtype="int")
     observations = env.reset()
     states = None
     episode_starts = np.ones((env.num_envs,), dtype=bool)
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(observations, state=states, episode_start=episode_starts, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
-        current_rewards += rewards
-        current_lengths += 1
+        current_successes += rewards
+        current_spls += 1
         for i in range(n_envs):
             if episode_counts[i] < episode_count_targets[i]:
 
@@ -104,28 +104,31 @@ def evaluate_policy(
                         # Atari wrapper can send a "done" signal when
                         # the agent loses a life, but it does not correspond
                         # to the true end of episode
-                        if "episode" in info.keys():
+                        if "success" in info.keys():
                             # Do not trust "done" with episode endings.
                             # Monitor wrapper includes "episode" key in info if environment
                             # has been wrapped with it. Use those rewards instead.
-                            episode_rewards.append(info["episode"]["r"])
-                            episode_lengths.append(info["episode"]["l"])
+                            print('episode success: ', info["success"])
+                            print('episode spl: ', info["spl"])
+                            episode_successes.append(info["success"])
+                            episode_spls.append(info["spl"])
                             # Only increment at the real end of an episode
                             episode_counts[i] += 1
                     else:
-                        episode_rewards.append(current_rewards[i])
-                        episode_lengths.append(current_lengths[i])
+                        episode_successes.append(current_successes[i])
+                        episode_spls.append(current_spls[i])
                         episode_counts[i] += 1
-                    current_rewards[i] = 0
-                    current_lengths[i] = 0
+                    current_successes[i] = 0
+                    current_spls[i] = 0
 
         if render:
             env.render()
 
-    mean_reward = np.mean(episode_rewards)
-    std_reward = np.std(episode_rewards)
+    mean_success = np.mean(episode_successes)
+    std_success = np.std(episode_successes)
+
+    mean_spl = np.mean(episode_spls)
+    std_spl = np.std(episode_spls)
     if reward_threshold is not None:
-        assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
-    if return_episode_rewards:
-        return episode_rewards, episode_lengths
-    return mean_reward, std_reward
+        assert mean_success > reward_threshold, "Mean reward below threshold: " f"{episode_successes:.2f} < {reward_threshold:.2f}"
+    return mean_success, mean_spl

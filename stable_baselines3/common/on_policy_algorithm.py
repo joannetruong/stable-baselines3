@@ -184,7 +184,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             if callback.on_step() is False:
                 return False
 
-            self._update_info_buffer(infos)
+            self._update_info_buffer(infos, dones)
             n_steps += 1
 
             if isinstance(self.action_space, gym.spaces.Discrete):
@@ -247,10 +247,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
 
         save_freq = 1
         while self.num_timesteps < total_timesteps:
-            print('self.num_timesteps: ', self.num_timesteps, save_freq)
-            if iteration % save_freq == 0:
-                print('SAVING!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                self.save("/home/joanne/repos/dynamic_nav/iGibson/igibson/examples/learning/ckpt_dir/ckpt_" + str(iteration))
 
             continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
 
@@ -269,8 +265,8 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                     self.logger.record("rollout/spl", safe_mean([ep_info["spl"] for ep_info in self.ep_info_buffer]))
                     self.logger.record("rollout/episode_length", safe_mean([ep_info["episode_length"] for ep_info in self.ep_info_buffer]))
                     self.logger.record("rollout/path_length", safe_mean([ep_info["path_length"] for ep_info in self.ep_info_buffer]))
-                if len(self.ep_success_buffer) > 0:
-                    self.logger.record("time/success", safe_mean(self.ep_success_buffer))
+                # if len(self.ep_success_buffer) > 0:
+                #     self.logger.record("time/success", safe_mean(self.ep_success_buffer))
                 self.logger.record("time/fps", fps)
                 self.logger.record("time/time_elapsed", int(time.time() - self.start_time))
                 self.logger.record("time/total_timesteps", self.num_timesteps)
